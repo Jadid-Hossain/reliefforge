@@ -108,7 +108,15 @@ def estimate_background(rgb: np.ndarray, band_frac: float = 0.06) -> tuple[np.nd
             rgb[b : H - b, W - b :].reshape(-1, 3),
         ]
     ).astype(np.int32)
+    # The design background always touches the image edge, so the outermost few pixels
+    # get the vote: a large plate that fills most of the band must not steal it.
+    dist0 = _distance_to_border(H, W)
+    edge = rgb[dist0 <= 3].reshape(-1, 3).astype(np.int32)
+    bg_edge, share_edge = _dominant_color(edge)
     bg, share = _dominant_color(band)
+    if share_edge >= 0.5 and not np.array_equal(bg_edge, bg):
+        bg = bg_edge
+        share = float((np.abs(band - bg).max(axis=1) <= 24).mean())
 
     dist = _distance_to_border(H, W)
     cover = (np.abs(rgb.astype(np.int16) - bg.astype(np.int16)).max(axis=2) <= 24).astype(np.float64)
@@ -261,9 +269,18 @@ def get_mask(
     if remove_bg == "auto" and (share < bg_share_min or not flat or not edge_dense):
         info["reason"] = "no plain background of an edge-dense flat design detected - whole image used"
         return None, info
+    d = np.abs(rgb.astype(np.int16) - np.asarray(bg, np.int16)).max(axis=2).astype(np.float32)
     mask, t = foreground_from_background(rgb, bg)
     info.update(source="background-colour", threshold=float(t))
-    if not edge_dense:  # forced on a shaded image: close the holes that shading leaves
+    # A colour mask is only meaningful when the distance-from-background map is BIMODAL:
+    # background near 0, objects clearly away. A smoothly shaded panel fills the valley
+    # between the modes and thresholding it splits the shading, not the design.
+    valley = float(((d >= 0.5 * t) & (d < t)).mean())
+    info["valley_share"] = round(valley, 4)
+    if remove_bg == "auto" and valley > 0.05:
+        info["reason"] = "background-to-design transition is graded, not a colour mask case - whole image used"
+        return None, info
+    if not edge_dense or valley > 0.05:  # forced on a shaded image: close the holes shading leaves
         from scipy import ndimage
 
         r = max(2, int(round(0.02 * min(mask.shape))))

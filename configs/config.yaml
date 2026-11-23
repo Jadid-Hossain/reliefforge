@@ -2,8 +2,11 @@
 model: depth-anything/Depth-Anything-V2-Small-hf
 
 data:
-  root: data/relief_dataset      # geometry/{split}, scenes.jsonl (fetch or generate, see src/data_download.py)
-  textures_dir: data/textures    # optional CC0 albedo PNGs (ambientCG); procedural wood is the fallback
+  root: data/relief_dataset        # synthetic auxiliary: geometry/{split}, scenes.jsonl
+  reliefdepth_root: data/relief_depth  # PRIMARY real data (KarimT/Relief-Depth, converted)
+  synthetic_frac: 0.35             # share of synthetic views per epoch (rest = real pairs)
+  synth_scenes: 1500               # auxiliary synthetic scene count
+  textures_dir: data/textures      # optional CC0 albedo PNGs (ambientCG); procedural wood is the fallback
   size: 518
 
 views:

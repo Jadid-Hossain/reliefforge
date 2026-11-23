@@ -211,11 +211,33 @@ out/
 
 ---
 
-## 6. Data (M8–M9, `src/synth`)
+## 6. Data (M8–M9 + real data) — **plan v3 (2026-11-24, user decision)**
 
-### 6.1 Why synthetic
+### 6.0 Data plan v3: real data is PRIMARY
 
-No public dataset pairs decorative 2D designs with exact CNC-style height. Our generator owns 100 % of the supervised labels; real CC0 textures are used only to **render** the inputs.
+The user overruled PRD_v2's "synthetic-only labels" plan (their call, recorded in
+`docs/log.md`): **KarimT/Relief-Depth is the primary training dataset**, the procedural
+generator stays as an auxiliary signal. Audit results (2026-11-24):
+
+* source: Sketchfab 3D relief models (British Museum, MET, …) rendered from the front;
+  **depth is rendered from the real 3D geometry** — one depth per scene shared by 5
+  lighting renders (indoor_museum / outdoor_noon / outdoor_overcast / raking_left /
+  raking_right) → real labels, not pseudo-labels
+* 768×768, RGB uint8 + depth uint16; **807 scenes on disk, 8,070 pairs**
+* `model_annotations.csv` gives splits (train 689 / val 89 / test 84 / exclude) and
+  relief_type (bas 765 / sunk 66 / high 32), culture, material — we respect the splits
+* licences (attribution_ledger.csv): mostly museum CC-BY-NC → **fine for a course /
+  research; NOT for the client's commercial product** (would need re-licensing there)
+* height conversion (`src/ml/realdata.py`): `bg = median(border ring)`,
+  `h = |d − bg| / percentile99.5` — bas (figure nearer) and sunk (figure farther) both
+  map to *raised* figures, which is the CNC convention; the slab stays the base plane
+
+Training mix: **65 % real Relief-Depth pairs + 35 % synthetic views** (exact labels keep
+our h-convention anchored and cover flat/BW styles the real set lacks). Validation runs
+on REAL held-out scenes; the reported test sets are the real `test` split (primary) and
+the synthetic `proc_test` (secondary, exact metrics).
+
+### 6.1 Why a synthetic auxiliary
 
 ### 6.2 Primitives (height-field safe)
 

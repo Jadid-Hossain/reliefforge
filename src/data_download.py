@@ -75,7 +75,22 @@ def main() -> int:
     ap.add_argument("--textures", action="store_true", help="also fetch the CC0 texture pack")
     ap.add_argument("--hf-repo", default=None, help="try this HF dataset repo first")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--relief-depth", action="store_true", help="download + convert KarimT/Relief-Depth as the PRIMARY real dataset")
+    ap.add_argument("--real-out", default="data/relief_depth")
+    ap.add_argument("--raw-dir", default="data/reliefdepth_raw")
+    ap.add_argument("--max-scenes", type=int, default=None, help="convert only the first N scenes (local tests)")
     args = ap.parse_args()
+
+    if args.relief_depth:
+        from ml import realdata
+
+        if (Path(args.real_out) / "reliefdepth.jsonl").exists():
+            print(f"Relief-Depth already converted: {args.real_out}")
+        else:
+            print(f"downloading {realdata.DATASET_ID} (~11 GB) ...")
+            realdata.download_reliefdepth(args.raw_dir)
+            realdata.convert_reliefdepth(args.raw_dir, args.real_out, max_scenes=args.max_scenes)
+        print("Relief-Depth QC:", realdata.qc_reliefdepth(args.real_out))
 
     out = Path(args.out)
     if (out / "scenes.jsonl").exists():

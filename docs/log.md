@@ -68,3 +68,39 @@ Format: date → summary → tests → decisions.
 ### Status vs plan
 Phase 0-4 complete locally. Gate G1 passed (real image -> validated STL, corr 0.822).
 Remaining is the user's part: GitHub push, Kaggle runs, Docker/screenshots, report fill.
+
+
+---
+
+## 2026-11-24 (Day 2) — data plan v3: Relief-Depth becomes the primary dataset
+
+### Decision (user)
+The user overruled the PRD_v2 synthetic-only plan: use existing datasets, specifically
+**KarimT/Relief-Depth**, for training; license risk accepted (course/research context).
+
+### Audit findings (before committing to it)
+- HF `KarimT/Relief-Depth`, 8,070 pair files: 807 scenes x 5 lightings, 768x768,
+  rgb uint8 + depth uint16. README is an empty template; attribution_ledger.csv shows
+  Sketchfab sources (British Museum etc., mostly CC-BY-NC).
+- Depth is REAL geometry (one depth per scene shared by all 5 lightings) — not pseudo-labels.
+- model_annotations.csv: pre-made splits train 689 / val 89 / test 84 / exclude,
+  relief_type bas 765 / sunk 66 / high 32.
+- Height direction differs by relief type (bas: figure brighter/nearer; sunk: darker) ->
+  converter uses h = |d - slab_median| / p99.5.
+
+### Implemented
+- `src/ml/realdata.py`: downloader (rgb_d_pairs + CSVs only) + converter + QC
+  (split/leakage/height checks). 7 tests in `tests/test_realdata.py`.
+- `src/ml/dataset.py`: `ReliefDepthDataset` (native-res crops, rot90/flip aug) +
+  `MixedReliefDataset` (65 % real / 35 % synthetic by default).
+- `src/train.py`: hybrid branch (val on REAL pairs), `--real-root`;
+  `src/evaluate.py`: `--real` evaluates the real test split; `write_report` empty-guard;
+  `pearson_corr` properly normalized (was able to exceed 1).
+- `configs/config.yaml`: reliefdepth_root, synthetic_frac 0.35, synth_scenes 1500.
+- `data_download.py --relief-depth` + nb01 updated for the hybrid build.
+- Local hybrid smoke: train a (8 steps) -> eval on real-format pairs works end to end.
+
+### Consequences
+- Course-form dataset link = the converted Relief-Depth (+ auxiliary synthetic) published
+  on Kaggle/HF. Licences stay non-commercial -> the client product cannot ship these
+  weights; that is documented as a limitation for the commercial roadmap.

@@ -29,6 +29,7 @@ def main() -> int:
     ap.add_argument("--split", default=None)
     ap.add_argument("--max-items", type=int, default=None)
     ap.add_argument("--data", default=None, help="override data.root")
+    ap.add_argument("--real", default=None, help="Relief-Depth converted root (real test set)")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -59,10 +60,18 @@ def main() -> int:
 
     run = tracking.start_run(cfg["mlflow"]["eval_experiment"], f"{label}_{int(time.time())}", tags={"label": label, "split": split})
     tracking.log_params_flat(run, {"model": label, "sizes": list(sizes), "split": split, "max_items": max_items})
-    rows = evaluate_model(model, root, split=split, sizes=sizes, device=device, max_items=max_items, label=label)
+    if args.real:
+        from ml.evaluate import evaluate_reliefdepth
+
+        rows = []
+        for S in sizes:
+            rows += evaluate_reliefdepth(model, args.real, split=split, size=S, device=device, max_items=max_items, label=label)
+    else:
+        rows = evaluate_model(model, root, split=split, sizes=sizes, device=device, max_items=max_items, label=label)
     rep = write_report(rows, out_dir, run)
-    fig = qualitative_figure({"pred": model}, root, out_dir / f"qualitative_{label}.png", split=split, size=sizes[0], n=5, device=device)
-    tracking.log_artifact_safe(run, fig)
+    if not args.real:
+        fig = qualitative_figure({"pred": model}, root, out_dir / f"qualitative_{label}.png", split=split, size=sizes[0], n=5, device=device)
+        tracking.log_artifact_safe(run, fig)
     print("| model | S | n | MAE | RMSE | SSIM | normal deg | R_detail | pearson |")
     print("|---|---|---|---|---|---|---|---|---|")
     for t in rep["table"]:

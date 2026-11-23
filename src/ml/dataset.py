@@ -230,3 +230,102 @@ def collate(batch: list[dict]) -> dict:
         "meta": metas,
         "style": styles,
     }
+
+
+# ------------------------------------------------------------------ Relief-Depth (real data)
+def _load_reliefdepth_rows(root: str | Path, split: str) -> list[dict]:
+    p = Path(root) / "reliefdepth.jsonl"
+    if not p.exists():
+        return []
+    return [json.loads(l) for l in open(p, encoding="utf-8") if json.loads(l)["split"] == split]
+
+
+class ReliefDepthDataset(Dataset):
+    """Real (rgb, height) pairs from KarimT/Relief-Depth, converted by ml.realdata.
+
+    Training view: random flip/rot90 + a random `size` crop of the 768x768 pair
+    (no resampling - native resolution). Eval view: whole image resized to `size`.
+    """
+
+    def __init__(self, root: str | Path, split: str = "train", size: int = 518, augment: bool = True, seed: int = 0):
+        self.root = Path(root)
+        self.rows = _load_reliefdepth_rows(root, split)
+        self.split = split
+        self.size = size
+        self.augment = augment and split == "train"
+        self.base_seed = seed
+        self.epoch = 0
+
+    def __len__(self):
+        return len(self.rows)
+
+    def set_epoch(self, e: int):
+        self.epoch = int(e)
+
+    def __getitem__(self, i: int) -> dict:
+        import cv2
+
+        S = self.size
+        r = self.rows[i]
+        rgb = cv2.imread(str(self.root / r["split"] / "rgb" / f"{r['id']}.png"), cv2.IMREAD_COLOR)[..., ::-1]
+        h16 = cv2.imread(str(self.root / r["split"] / "h" / f"{r['id']}.png"), cv2.IMREAD_UNCHANGED)
+        gt = h16.astype(np.float32) / 65535.0
+        rng = np.random.default_rng(self.base_seed * 1_000_003 + i * 6007 + self.epoch)
+        if self.augment:
+            k = int(rng.integers(0, 4))
+            if k:
+                rgb, gt = np.rot90(rgb, k), np.rot90(gt, k)
+            if rng.random() < 0.5:
+                rgb, gt = rgb[:, ::-1], gt[:, ::-1]
+            rgb, gt = np.ascontiguousarray(rgb), np.ascontiguousarray(gt)
+            H, W = gt.shape
+            if min(H, W) > S:  # native-resolution crop, no resampling
+                y0 = int(rng.integers(0, H - S + 1))
+                x0 = int(rng.integers(0, W - S + 1))
+                rgb, gt = rgb[y0 : y0 + S, x0 : x0 + S], gt[y0 : y0 + S, x0 : x0 + S]
+        H, W = gt.shape
+        if max(H, W) != S:  # eval view (or a small image): resize to S x S
+            rgb = cv2.resize(rgb, (S, S), interpolation=cv2.INTER_AREA if max(H, W) > S else cv2.INTER_CUBIC)
+            gt = cv2.resize(gt, (S, S), interpolation=cv2.INTER_AREA if max(H, W) > S else cv2.INTER_CUBIC)
+        valid = np.ones((S, S), bool)
+        x = (rgb.astype(np.float32) / 255.0 - MEAN) / STD
+        kappa = float(r["relief_depth_mm_scene"]) * float(r["px_per_mm_native"]) * 1.0
+        meta = {k: r.get(k) for k in ("id", "scene", "lighting", "relief_type", "culture", "material", "source")}
+        return {
+            "img": torch.from_numpy(np.ascontiguousarray(x.transpose(2, 0, 1))).float(),
+            "gt": torch.from_numpy(np.ascontiguousarray(gt)).float(),
+            "valid": torch.from_numpy(valid),
+            "fg": torch.from_numpy((gt > 0.05).astype(np.float32)),
+            "kappa": torch.tensor(kappa, dtype=torch.float32),
+            "meta": meta,
+            "style": r.get("lighting", ""),
+        }
+
+
+class MixedReliefDataset(Dataset):
+    """Primary: real Relief-Depth pairs. Auxiliary: on-the-fly synthetic views.
+
+    The synthetic share keeps the exact-labels signal and our height convention alive
+    while the real pairs carry the domain (see docs/architecture.md §6, data plan v3).
+    """
+
+    def __init__(self, synth_root: str | Path, real_root: str | Path, *, size: int = 518, synthetic_frac: float = 0.35, full_frac: float = 0.4, base_crop_min: float = 0.55, textures=None, seed: int = 0):
+        self.synth = ReliefTrainDataset(synth_root, size=size, full_frac=full_frac, base_crop_min=base_crop_min, augment=True, textures=textures, seed=seed)
+        self.real = ReliefDepthDataset(real_root, split="train", size=size, augment=True, seed=seed)
+        if not len(self.real):
+            raise FileNotFoundError(f"no Relief-Depth pairs under {real_root} (run the converter first)")
+        self.synthetic_frac = float(synthetic_frac)
+
+    def __len__(self):
+        return len(self.real) + len(self.synth)
+
+    def set_epoch(self, e: int):
+        self.real.set_epoch(e)
+        self.synth.set_epoch(e)
+
+    def __getitem__(self, i: int) -> dict:
+        rng = np.random.default_rng(i * 9176 + self.real.epoch)
+        if rng.random() < self.synthetic_frac:
+            j = int(rng.integers(0, len(self.synth)))
+            return self.synth[j]
+        return self.real[i % len(self.real)]

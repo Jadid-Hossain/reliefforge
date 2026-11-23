@@ -35,24 +35,40 @@ pytest tests/ -q    # 154 tests (downloads the zero-shot weights on first use)
 
 ## 2. Dataset (never committed — fetched/built into `data/`)
 
+**Hybrid data plan (v3):** the *primary* training data is the real
+**[KarimT/Relief-Depth](https://huggingface.co/datasets/KarimT/Relief-Depth)** dataset —
+807 relief scenes (Sketchfab 3D models from the British Museum, MET, …) rendered under 5
+lightings each with **depth rendered from the real geometry** (8,070 RGB–depth pairs,
+768×768). Our converter turns it into the project's height convention
+(`h = |depth − slab plane| / p99.5`, per-scene splits respected: 689 train / 89 val /
+84 test). An auxiliary synthetic set (1,500 procedural scenes with exact labels) covers
+flat/BW styles and anchors the height convention. Training samples ~65 % real + ~35 % synthetic.
+
 ```bash
-python src/data_download.py --out data/relief_dataset --n-scenes 4000 --workers 4 --textures
+python src/data_download.py --out data/relief_dataset --n-scenes 1500 --workers 4 \
+    --relief-depth --real-out data/relief_depth --textures
 ```
 
-- `--hf-repo <user>/cnc-relief-depth` pulls a published copy from the Hugging Face Hub instead of generating.
-- `--textures` also downloads ~10 CC0 albedo textures (ambientCG, CC0 1.0) into `data/textures`;
-  without them the generator uses its procedural wood.
-- Output: `data/relief_dataset/{geometry,renders,previews,scenes.jsonl,contact_sheet.png}`
-  (4,000 scenes; 3,200 train / 400 val / 400 test, split by scene id).
-- Explore the dataset with `notebooks/exploration.ipynb`.
+- `--relief-depth` downloads (~11 GB) and converts the real dataset; `--max-scenes N` for a local test subset.
+- `--hf-repo <user>/cnc-relief-depth` pulls a published copy from the Hugging Face Hub instead of generating the synthetic part.
+- `--textures` also downloads ~10 CC0 albedo textures (ambientCG, CC0 1.0) into `data/textures`.
+- Output: `data/relief_depth/{train,val,test}/{rgb,h}` + `reliefdepth.jsonl` (primary) and
+  `data/relief_dataset/{geometry,renders,previews,scenes.jsonl}` (auxiliary).
+- **Licence note:** the real dataset's sources are mostly museum CC-BY-NC — fine for this
+  course/research project; the client's *commercial* product would need different data.
+- Explore the data with `notebooks/exploration.ipynb`.
 
 ## 3. Training (MLflow-tracked, two stages)
 
 ```bash
-python src/train.py --config configs/stage_a.yaml --data data/relief_dataset   # decoder-only warm-up
+python src/train.py --config configs/stage_a.yaml --data data/relief_dataset \
+    --real-root data/relief_depth                       # decoder-only warm-up (hybrid data)
 python src/train.py --config configs/stage_b.yaml --data data/relief_dataset \
-    --stage-a-dir artifacts/train_a/export                                     # full fine-tune
+    --real-root data/relief_depth --stage-a-dir artifacts/train_a/export   # full fine-tune
 ```
+
+Training samples ~65 % real Relief-Depth pairs (native-resolution 518 crops, rot90/flip
+augmentation) and ~35 % synthetic views; **validation runs on the real held-out scenes**.
 
 - Stage A freezes the DINOv2 `backbone.*` and trains the DPT `neck.*`/`head.*` (groups are
   built from `named_parameters()` and asserted to cover every parameter).
@@ -68,8 +84,10 @@ python src/train.py --config configs/stage_b.yaml --data data/relief_dataset \
 ## 4. Evaluation
 
 ```bash
-python src/evaluate.py --data data/relief_dataset --zero-shot
-python src/evaluate.py --data data/relief_dataset --model artifacts/train_b/export --label stage_b
+# primary: the real held-out Relief-Depth test split
+python src/evaluate.py --data data/relief_dataset --real data/relief_depth --zero-shot
+python src/evaluate.py --data data/relief_dataset --real data/relief_depth --model artifacts/train_b/export --label stage_b
+# secondary: synthetic exact-label test + the resolution study
 python src/evaluate.py --data data/relief_dataset --model artifacts/train_b/export --sizes 518 756 1036
 ```
 
@@ -122,6 +140,7 @@ model export. Screenshot: `screenshots/mlflow_runs.png`.
 | Transfer learning / fine-tuning a pretrained ViT | `src/ml/trainer.py` (Stage A decoder-only → Stage B full fine-tune of Depth Anything V2 Small) |
 | Transformer backbone (DINOv2 ViT-S) + DPT head | `src/ml/trainer.py`, `src/reliefkit/model.py` |
 | Custom loss design (scale-shift-invariant regression, multi-scale gradients, geometry-aware normal loss) | `src/ml/losses.py` |
+| Real-data fine-tuning + synthetic augmentation (hybrid) | `src/ml/realdata.py`, `src/ml/dataset.py` (Relief-Depth primary, generator auxiliary) |
 | Synthetic data generation / domain randomization | `src/synth/` (5 families, 4 render styles, on-the-fly augmentation) |
 | Data pipeline & augmentation (aspect-preserving views, crop/full sampling, letterboxing) | `src/ml/dataset.py` |
 | AMP mixed precision, EMA, warmup + cosine schedule, resume | `src/ml/trainer.py` |
@@ -187,7 +206,8 @@ has no physical Z range: scale Z to `relief_depth_mm` using `relief_meta.json`
 | Our procedural dataset | generated by `src/synth/` (this repo) | train/val/test (ours) |
 | ambientCG textures | CC0 1.0 | render albedos only |
 | Procedural wood fallback | generated by `src/synth/render.py` | render albedos |
-| Relief-Depth, RRD Borobudur, GrabCAD | unclear / non-commercial | NOT used for training; at most qualitative inspection |
+| Relief-Depth (KarimT) | source models mostly CC-BY-NC (museums, via Sketchfab) | ✅ training for this course/research project — ❌ NOT for the client's commercial product |
+| RRD Borobudur, GrabCAD | non-commercial / per-model | not used (optional qualitative test only) |
 
 ## 14. Report
 

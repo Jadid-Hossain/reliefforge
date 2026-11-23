@@ -66,6 +66,8 @@ def evaluate_model(
 def write_report(rows: list[dict], out_dir: str | Path, run=None) -> dict:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        raise ValueError("no evaluation rows produced (empty split? wrong --data/--real root?)")
     with open(out / "results.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader()
@@ -142,3 +144,38 @@ def qualitative_figure(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(out_path), sheet[..., ::-1])
     return out_path
+
+@torch.no_grad()
+def evaluate_reliefdepth(
+    model,
+    real_root: str | Path,
+    split: str = "test",
+    size: int = 518,
+    device: str = "cpu",
+    batch_size: int = 4,
+    max_items: int | None = None,
+    label: str = "model",
+    limit_lightings: tuple[str, ...] | None = ("indoor_museum", "raking_left"),
+) -> list[dict]:
+    """Evaluate on real Relief-Depth pairs (converted format) - the real_test set."""
+    from ml.dataset import ReliefDepthDataset
+
+    ds = ReliefDepthDataset(real_root, split=split, size=size, augment=False)
+    if limit_lightings:
+        ds.rows = [r for r in ds.rows if r.get("lighting") in limit_lightings]
+    if max_items:
+        ds.rows = ds.rows[:max_items]
+    loader = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=0, collate_fn=collate)
+    rows = []
+    for batch in loader:
+        x = batch["img"].to(device)
+        with torch.autocast("cuda", dtype=torch.float16, enabled=device.startswith("cuda")):
+            pred = model(pixel_values=x).predicted_depth.float().cpu().numpy()
+        gt = batch["gt"].numpy()
+        valid = batch["valid"].numpy()
+        kappa = batch["kappa"].numpy()
+        for b in range(pred.shape[0]):
+            m = all_metrics(pred[b], gt[b], valid[b], float(kappa[b]))
+            meta = batch["meta"][b]
+            rows.append({"model": label, "S": size, "family": f"real-{meta.get('relief_type', '?')}", "style": batch["style"][b], "scene": meta.get("scene", "?"), **m})
+    return rows

@@ -1,0 +1,14 @@
+artifact_uri: file:///G:/Code%20Playground/3D%20Master/mlruns/729344908365623070/08f0c2d3ab6f471a990ff42ae8291dcd/artifacts
+end_time: 1795463367615
+entry_point_name: ''
+experiment_id: '729344908365623070'
+lifecycle_stage: active
+run_id: 08f0c2d3ab6f471a990ff42ae8291dcd
+run_name: hybrid_smoke_1795463359
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1795463367103
+status: 3
+tags: []
+user_id: jadid

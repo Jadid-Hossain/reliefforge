@@ -1,0 +1,14 @@
+artifact_uri: file:///G:/Code%20Playground/3D%20Master/mlruns/244376824438042850/c85760f65a71407b8479149edc921a5c/artifacts
+end_time: 1795463567486
+entry_point_name: ''
+experiment_id: '244376824438042850'
+lifecycle_stage: active
+run_id: c85760f65a71407b8479149edc921a5c
+run_name: a_smoke_1795463480
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1795463487420
+status: 3
+tags: []
+user_id: jadid

@@ -55,7 +55,7 @@ Details live in `architecture.md` (spec), `plan.md` (tasks), `log.md` (history).
 | Invert | raised ↔ recessed **relative to the base plane**: outside the relief the level is `1.0` when inverted (not 0) |
 | Mode A radius | `R_px = transition_width_mm / pixel_pitch_mm`, else `0.03 × long_side` |
 | Inference size | from the **long side** in mm and the tool, then capped by the source resolution, clamp 518–1036 |
-| Data | own generator = 100 % of labels; textures (CC0 ambientCG) only for rendering; micro-normal OFF in run 1 |
+| Data | **Relief-Depth (KarimT/Relief-Depth) = PRIMARY training data** (user decision 2026-11-24; rendered-from-3D labels, 8,070 pairs, splits respected, CC-BY-NC → course OK / commercial NOT); own generator = auxiliary 35 % mix; textures (CC0 ambientCG) only for rendering |
 | Composition | `max` over `z_i + a_i·profile_i` **inside each primitive's support only** |
 | κ | `κ = relief_depth_mm × px_per_mm_native × s`; `s` = full view `S/long_side`, crop view = real resize factor |
 | Crop scale | `s_min = max(0.55, 518 / min(H, W))` |

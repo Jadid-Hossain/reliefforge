@@ -112,5 +112,9 @@ def pearson_corr(p: torch.Tensor, g: torch.Tensor, valid: torch.Tensor) -> torch
     gn = normalize_batch(g, valid)
     w = valid.float()
     n = w.sum(dim=(1, 2)).clamp_min(1.0)
-    cov = ((pn * gn * w).sum(dim=(1, 2)) - (pn * w).sum(dim=(1, 2)) * (gn * w).sum(dim=(1, 2)) / n) / n
-    return cov
+    mp = (pn * w).sum(dim=(1, 2)) / n
+    mg = (gn * w).sum(dim=(1, 2)) / n
+    cov = ((pn - mp[:, None, None]) * (gn - mg[:, None, None]) * w).sum(dim=(1, 2)) / n
+    sp = (((pn - mp[:, None, None]) ** 2 * w).sum(dim=(1, 2)) / n).sqrt().clamp_min(EPS)
+    sg = (((gn - mg[:, None, None]) ** 2 * w).sum(dim=(1, 2)) / n).sqrt().clamp_min(EPS)
+    return cov / (sp * sg)

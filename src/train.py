@@ -61,6 +61,7 @@ def main() -> int:
     ap.add_argument("--smoke", action="store_true", help="tiny step budget for a wiring test")
     ap.add_argument("--out", default=None, help="output dir (default artifacts/train_<stage>)")
     ap.add_argument("--data", default=None, help="override data.root")
+    ap.add_argument("--real-root", default=None, help="override data.reliefdepth_root (converted Relief-Depth)")
     ap.add_argument("--stage-a-dir", default=None, help="Stage A export dir for Stage B")
     ap.add_argument("--resume", default=None)
     args = ap.parse_args()
@@ -68,6 +69,8 @@ def main() -> int:
     cfg = load_config(args.config)
     if args.data:
         cfg["data"]["root"] = args.data
+    if args.real_root:
+        cfg["data"]["reliefdepth_root"] = args.real_root
     stage = cfg.get("stage", "a")
     if args.smoke:
         cfg["steps"] = 8
@@ -102,9 +105,18 @@ def main() -> int:
     textures = load_textures(cfg["data"].get("textures_dir"))
     if textures:
         print(f"loaded {len(textures)} CC0 textures")
-    train_ds = ReliefTrainDataset(root, size=int(cfg["data"].get("size", 518)), full_frac=float(cfg["views"]["full_frac"]), base_crop_min=float(cfg["views"]["crop_min"]), textures=textures)
-    val_ds = ReliefEvalDataset(root, split="val", size=int(cfg["data"].get("size", 518)), textures=textures)
-    print(f"dataset: {len(train_ds)} train scenes, {len(val_ds)} val views")
+    real_root = cfg["data"].get("reliefdepth_root")
+    from ml.dataset import MixedReliefDataset, ReliefDepthDataset
+
+    real_val = ReliefDepthDataset(real_root, split="val", size=int(cfg["data"].get("size", 518)), augment=False) if real_root else None
+    if real_root and len(real_val or []):
+        train_ds = MixedReliefDataset(root, real_root, size=int(cfg["data"].get("size", 518)), synthetic_frac=float(cfg["data"].get("synthetic_frac", 0.35)), full_frac=float(cfg["views"]["full_frac"]), base_crop_min=float(cfg["views"]["crop_min"]), textures=textures)
+        val_ds = real_val  # validate on REAL held-out scenes (the primary metric)
+        print(f"dataset: HYBRID - {len(train_ds.real)} real pairs (primary) + {len(train_ds.synth)} synthetic scenes, {len(val_ds)} real val pairs")
+    else:
+        train_ds = ReliefTrainDataset(root, size=int(cfg["data"].get("size", 518)), full_frac=float(cfg["views"]["full_frac"]), base_crop_min=float(cfg["views"]["crop_min"]), textures=textures)
+        val_ds = ReliefEvalDataset(root, split="val", size=int(cfg["data"].get("size", 518)), textures=textures)
+        print(f"dataset: SYNTHETIC ONLY - {len(train_ds)} train scenes, {len(val_ds)} val views")
 
     run_name = (cfg.get("mlflow", {}).get("run_name") or f"{stage}_{'smoke_' if args.smoke else ''}{int(time.time())}")
     run = tracking.start_run(cfg["mlflow"]["experiment"], run_name, tags={"stage": stage, "smoke": str(args.smoke)})

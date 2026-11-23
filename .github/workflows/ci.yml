@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      HF_HOME: ${{ github.workspace }}/.hf_cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -r requirements.txt
+      - name: Run the test suite (downloads the zero-shot weights on first run)
+        run: python -m pytest tests/ -q
+      - name: Docker build (proof that the app image builds)
+        run: docker build -t reliefforge-app:ci .
+      - name: Docker run smoke test
+        run: |
+          docker run -d --name reliefforge-ci -p 7860:7860 reliefforge-app:ci
+          sleep 25
+          curl -sf http://localhost:7860/ > /dev/null && echo "app is up" || (docker logs reliefforge-ci && exit 1)
+          docker logs reliefforge-ci | tail -5
+          docker rm -f reliefforge-ci

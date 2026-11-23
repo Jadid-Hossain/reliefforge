@@ -1,0 +1,5 @@
+# Stage B — full fine-tune (encoder at a small LR), continues from the Stage A export
+stage: b
+lr: {encoder: 1.0e-5, decoder: 5.0e-5}
+steps: 8000
+use_stage_a_checkpoint: true     # path resolved from train.stage_a_dir

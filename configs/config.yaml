@@ -1,0 +1,38 @@
+# ReliefForge master config. Stage files (stage_a.yaml / stage_b.yaml) override keys.
+model: depth-anything/Depth-Anything-V2-Small-hf
+
+data:
+  root: data/relief_dataset      # geometry/{split}, scenes.jsonl (fetch or generate, see src/data_download.py)
+  textures_dir: data/textures    # optional CC0 albedo PNGs (ambientCG); procedural wood is the fallback
+  size: 518
+
+views:
+  full_frac: 0.4
+  crop_min: 0.55                 # base lower bound; the dataset locks s_min per canvas
+
+styles: {wood: 0.40, clay: 0.35, flat: 0.15, bw: 0.10}
+
+loss: {height: 1.0, grad: 0.5, normal: 0.1, fg_weight: 2.0}
+
+train:
+  batch_size: 8
+  num_workers: 2
+  amp: true
+  grad_clip: 1.0
+  weight_decay: 1.0e-4
+  warmup_steps: 300
+  ema_decay: 0.999
+  log_every: 100
+  save_every: 500
+  grad_accum: 1
+
+eval:
+  split: test
+  sizes: [518]                   # add 756/1036 on Day 4 (resolution study)
+  max_items: null                # null = all; the local smoke run sets a small number
+  out_dir: artifacts/eval
+
+mlflow:
+  experiment: ReliefForge-Finetune
+  eval_experiment: ReliefForge-Eval
+  run_name: null                 # auto: stage + timestamp

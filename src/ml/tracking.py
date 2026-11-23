@@ -28,17 +28,20 @@ def is_active() -> bool:
 
 def start_run(experiment: str, run_name: str, tracking_uri: str | None = None, tags: dict | None = None):
     import mlflow
+    from pathlib import Path
 
-    uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI", str(Path.cwd() / "mlruns"))
+    # mlflow >= 3.18 keeps the file store behind an opt-out flag; we deliberately use it:
+    # mlruns/ is plain files that can be committed as course evidence.
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+    uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI")
+    if not uri:
+        uri = (Path.cwd() / "mlruns").resolve().as_uri()  # file store -> committed to the repo
     mlflow.set_tracking_uri(uri)
     try:
         mlflow.set_experiment(experiment)
-    except Exception:
-        pass
-    try:
-        return mlflow.start_run(run_name=run_name, tags=tags or {})
-    except Exception:
-        return _NullRun()
+    except Exception as exc:
+        print(f"mlflow: could not set experiment '{experiment}': {exc}")
+    return mlflow.start_run(run_name=run_name, tags=tags or {})
 
 
 def log_params_flat(run, cfg: dict, prefix: str = "") -> None:

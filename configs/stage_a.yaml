@@ -1,0 +1,5 @@
+# Stage A — decoder-only warm-up (review fix 6: backbone.* frozen, neck.* + head.* train)
+stage: a
+lr: {encoder: 0.0, decoder: 1.0e-4}
+steps: 2000
+use_stage_a_checkpoint: false    # start from the base model

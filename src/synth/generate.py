@@ -10,6 +10,7 @@ Layout on disk (PRD_v2 §5.4):
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import cv2
@@ -36,8 +37,13 @@ def generate_dataset(
     make_previews: bool = True,
     scene_fn=None,
     log_every: int = 200,
+    workers: int = 1,
 ) -> Path:
-    """Generate the geometry dataset. `scene_fn` allows tests to inject a cheap generator."""
+    """Generate the geometry dataset. `scene_fn` allows tests to inject a cheap generator.
+
+    The (id, split, family, seed) plan is fixed in the parent; workers only build the
+    scenes, so parallel output can never duplicate ids or leak scenes across splits.
+    """
     out = Path(out_root)
     (out / "geometry").mkdir(parents=True, exist_ok=True)
     (out / "renders").mkdir(parents=True, exist_ok=True)
@@ -48,37 +54,53 @@ def generate_dataset(
 
     n_val, n_test = int(n_scenes * val_frac), int(n_scenes * test_frac)
     n_train = n_scenes - n_val - n_test
-    counts = {"train": n_train, "val": n_val, "test": n_test}
-    rows = []
+    plan = []
     idx = 0
-    for split, n in counts.items():
+    for split, n in (("train", n_train), ("val", n_val), ("test", n_test)):
         (out / "geometry" / split).mkdir(parents=True, exist_ok=True)
         (out / "renders" / split).mkdir(parents=True, exist_ok=True)
         for _ in range(n):
-            fam = fams[idx % len(fams)]
-            scene = make_scene(seed0 + idx, fam)
-            meta = scene["meta"]
-            meta.update({"id": idx, "split": split})
-            gid = f"{idx:06d}"
-            cv2.imwrite(str(out / "geometry" / split / f"{gid}_h.png"), h_to_u16(scene["h"]))
-            cv2.imwrite(str(out / "geometry" / split / f"{gid}_inst.png"), scene["inst"].astype(np.uint16))
-            if split in ("val", "test"):
-                for style in pre_render_styles:
-                    rng = np.random.default_rng(10_000 + idx * 10)
-                    img = render_view(scene["h"], scene["inst"], meta, view_scale=518 / max(meta["W"], meta["H"]), style=style, rng=rng)
-                    cv2.imwrite(str(out / "renders" / split / f"{gid}_{style}.png"), img[..., ::-1])
-            elif make_previews:
-                rng = np.random.default_rng(idx)
-                img = render_view(scene["h"], scene["inst"], meta, view_scale=518 / max(meta["W"], meta["H"]), style=TRAIN_PREVIEW_STYLE, rng=rng)
-                cv2.imwrite(str(out / "previews" / f"{gid}.jpg"), img[..., ::-1], [cv2.IMWRITE_JPEG_QUALITY, 85])
-            rows.append(meta)
+            plan.append((idx, split, seed0 + idx, fams[idx % len(fams)]))
             idx += 1
-            if log_every and idx % log_every == 0:
-                print(f"  {idx}/{n_scenes} scenes", flush=True)
+
+    scenes = None
+    if workers > 1 and scene_fn is None:
+        import multiprocessing as mp
+        from concurrent.futures import ProcessPoolExecutor
+
+        ctx = mp.get_context("spawn" if sys.platform == "win32" else "fork")
+        with ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as ex:
+            scenes = list(ex.map(_scene_job, [(seed, fam) for (_i, _s, seed, fam) in plan], chunksize=8))
+
+    rows = []
+    for k, (i, split, seed, fam) in enumerate(plan):
+        scene = scenes[k] if scenes is not None else make_scene(seed, fam)
+        meta = scene["meta"]
+        meta.update({"id": i, "split": split})
+        gid = f"{i:06d}"
+        cv2.imwrite(str(out / "geometry" / split / f"{gid}_h.png"), h_to_u16(scene["h"]))
+        cv2.imwrite(str(out / "geometry" / split / f"{gid}_inst.png"), scene["inst"].astype(np.uint16))
+        if split in ("val", "test"):
+            for style in pre_render_styles:
+                rng = np.random.default_rng(10_000 + i * 10)
+                img = render_view(scene["h"], scene["inst"], meta, view_scale=518 / max(meta["W"], meta["H"]), style=style, rng=rng)
+                cv2.imwrite(str(out / "renders" / split / f"{gid}_{style}.png"), img[..., ::-1])
+        elif make_previews:
+            rng = np.random.default_rng(i)
+            img = render_view(scene["h"], scene["inst"], meta, view_scale=518 / max(meta["W"], meta["H"]), style=TRAIN_PREVIEW_STYLE, rng=rng)
+            cv2.imwrite(str(out / "previews" / f"{gid}.jpg"), img[..., ::-1], [cv2.IMWRITE_JPEG_QUALITY, 85])
+        rows.append(meta)
+        if log_every and (k + 1) % log_every == 0:
+            print(f"  {k + 1}/{n_scenes} scenes", flush=True)
     with open(out / "scenes.jsonl", "w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
     return out
+
+
+def _scene_job(args):
+    seed, fam = args
+    return recipes.make_scene_checked(seed, fam)
 
 
 def contact_sheet(out_root: str | Path, n: int = 24, seed: int = 0, out_path: str | Path | None = None) -> Path:

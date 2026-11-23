@@ -1,0 +1,46 @@
+# ---- data & generated artifacts (course rule: never commit datasets) ----
+data/*
+!data/.gitkeep
+artifacts/*
+!artifacts/.gitkeep
+models/*
+!models/.gitkeep
+!models/README.md
+
+# ---- weight binaries: published on HF Hub instead. mlruns/ metadata, metrics
+#      and plots ARE committed (never ignore mlruns/). ----
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.bin
+mlruns/.trash/
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# ---- caches ----
+.cache/
+.hf_cache/
+.gradio/
+
+# ---- large generated outputs (keep small PNG previews only) ----
+*.stl
+*.3mf
+*.obj
+*.tiff
+*.zip
+*.mp4
+
+# ---- local-only source material (faculty PDF, PRD drafts, report template) ----
+resources/
+
+# ---- secrets & local config ----
+.env
+kaggle.json

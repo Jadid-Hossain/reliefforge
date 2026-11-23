@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--transition-width", default="auto", help="Mode A bevel width in mm, or 'auto'")
     p.add_argument("--detail", default="standard", choices=["draft", "standard", "high"], help="mesh triangle budget")
     p.add_argument("--tool", type=float, default=1.0, help="tool diameter in mm (warnings + resolution)")
-    p.add_argument("--size", type=int, default="auto" and 0 or 0, help="inference long side (multiple of 14) or omit for auto")
+    p.add_argument("--size", type=int, default=0, help="inference long side (multiple of 14); 0/omit = auto")
     p.add_argument("--tta", action="store_true", help="flip test-time augmentation (Mode B)")
     p.add_argument("--device", default=None, help="cpu / cuda (default: auto)")
     p.add_argument("--no-model", action="store_true", help="skip Mode B even if requested (classic modes only)")

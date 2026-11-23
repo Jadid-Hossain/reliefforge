@@ -33,3 +33,38 @@ Format: date → summary → tests → decisions.
 ### Decisions
 - Work locally on `main` with small commits per module; pushing is done by the user.
 - Weight binaries are not committed; `mlruns/` metadata, metrics and plots are.
+
+
+---
+
+## 2026-11-23 (Day 1, evening) — full pipeline, generator, training stack, app, delivery layer
+
+### Done (commits 68092ba…bcbe442)
+- **reliefkit**: mesh (78 tests), io/preprocess/modes/postprocess/model/export/pipeline/CLI.
+  All 12 review fixes implemented (architecture.md §11 has the mapping).
+- **synth**: procedural generator (5 families, 4 styles, native canvases) with
+  support-mask composition; QC + contact sheet; 0.36 s/scene.
+- **ml**: losses (median/MAD + multi-scale grad + physical-κ normal), on-the-fly view
+  datasets (s_min lock), EMA, MLflow tracking, two-stage trainer (asserted param
+  groups), metrics + evaluation with breakdowns; 20 tests.
+- **entry points**: train/evaluate/data_download/generate_dataset + configs; local
+  smoke chain green (zeroshot MAE .366 -> stage_b_smoke .364 on 3 views; 4 MLflow runs).
+- **app**: Gradio UI + Dockerfile + CI (pytest + docker build/run); Kaggle notebooks
+  nb01–nb03; README; final_report.md (template sections, TODO slots for Kaggle numbers).
+
+### Bugs found and fixed by the tests
+1. Mesh winding was inverted (row flip) -> negative volume.
+2. Colour masks punched the flat top out of shaded renders and inverted the mask when a
+   plate touched the border band -> background colour now taken from the outermost
+   pixels AND masks are only applied when the distance map is bimodal (valley < 5%).
+   Zero-shot on a realistic render: corr 0.289 -> 0.822.
+3. suggest_mode: five feature probes showed smooth monochrome renders are statistically
+   near-flat; final rule = dominant-colour coverage + B/W bimodality (review fix 2),
+   suggestion is overrideable; limitation documented.
+4. Parallel dataset generation duplicated ids (per-shard split) -> parent-fixed plan.
+5. MLflow 3.18 file store needs MLFLOW_ALLOW_FILE_STORE + file:/// URI.
+6. gradient-loss leaked padding garbage into coarser scales -> mask residual before pooling.
+
+### Status vs plan
+Phase 0-4 complete locally. Gate G1 passed (real image -> validated STL, corr 0.822).
+Remaining is the user's part: GitHub push, Kaggle runs, Docker/screenshots, report fill.

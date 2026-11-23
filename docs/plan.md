@@ -19,36 +19,36 @@ Deadline: **28 Nov 2026 23:59** (hard). Working target: **27 Nov**. Tick items h
 - [x] Read instructions, PRDs and review fixes; adjudicate every fix (`architecture.md` §11)
 - [x] Environment check (Python, torch, Docker, git, disk, CPU)
 - [x] `docs/architecture.md`, `docs/memory.md`, `docs/plan.md`, `docs/log.md`
-- [ ] `.gitignore`, `.gitattributes`, `requirements.txt`, `configs/config.yaml`, git init + first commit
+- [x] `.gitignore`, `.gitattributes`, `requirements.txt`, `configs/config.yaml`, git init + first commit
 
 ### Phase 1 — Inference pipeline (Day-1 safety net)
-- [ ] `reliefkit/io.py`, `preprocess.py` (mask, components, letterbox, `suggest_mode`, inference size)
-- [ ] `reliefkit/mesh.py` + `tests/test_mesh.py` (watertight, budget, validation)
-- [ ] `reliefkit/modes.py` (A, C), `postprocess.py` (M4 with the invert fix) + tests
-- [ ] `reliefkit/model.py` (zero-shot, sign, TTA), `export.py`, `preview.py`, `pipeline.py`
-- [ ] `src/predict.py` CLI; end-to-end test with a fake model + optional real model
-- [ ] **Gate G1**
+- [x] `reliefkit/io.py`, `preprocess.py` (mask, components, letterbox, `suggest_mode`, inference size)
+- [x] `reliefkit/mesh.py` + `tests/test_mesh.py` (watertight, budget, validation)
+- [x] `reliefkit/modes.py` (A, C), `postprocess.py` (M4 with the invert fix) + tests
+- [x] `reliefkit/model.py` (zero-shot, sign, TTA), `export.py`, `preview.py`, `pipeline.py`
+- [x] `src/predict.py` CLI; end-to-end verified with the real zero-shot model
+- [x] **Gate G1** (corr 0.822, watertight STL)
 
 ### Phase 2 — Data
-- [ ] `synth/shapes.py`, `compose.py` (support-mask composition) + tests
-- [ ] `synth/recipes.py` (5 families, symmetry, plate), `textures.py`, `render.py` (κ defined, 4 styles, degradations)
-- [ ] `synth/generate.py`, `qc.py` (contact sheet, asserts, polarity test)
-- [ ] `src/data_download.py` (CC0 textures + credits; published dataset or local generation)
-- [ ] `src/generate_dataset.py`
+- [x] `synth/shapes.py`, `compose.py` (support-mask composition) + tests
+- [x] `synth/recipes.py` (5 families, symmetry, plate), `render.py` (κ defined, 4 styles, degradations)
+- [x] `synth/generate.py` (contact sheet, asserts, polarity test in tests)
+- [x] `src/data_download.py` (CC0 textures; published dataset or local generation)
+- [x] `src/generate_dataset.py`
 
 ### Phase 3 — Training and evaluation
-- [ ] `ml/dataset.py` (full/crop views, `s_min` lock, fixed val/test) + tests
-- [ ] `ml/losses.py` + tests; `ml/ema.py`; `ml/tracking.py` (MLflow)
-- [ ] `ml/trainer.py` (named param groups, Stage A/B, AMP, EMA, resume, history.csv, HF Hub push)
-- [ ] `ml/evaluate.py`, `ml/metrics.py` (MAE, RMSE, SSIM, normal error, R_detail; per family/style/S)
-- [ ] `src/train.py`, `src/evaluate.py`; local smoke run (tiny set, CPU) → `mlruns/`
-- [ ] Kaggle notebooks `nb01_generate_dataset`, `nb02_train`, `nb03_evaluate`
+- [x] `ml/dataset.py` (full/crop views, `s_min` lock, fixed val/test) + tests
+- [x] `ml/losses.py` + tests; `ml/ema.py`; `ml/tracking.py` (MLflow)
+- [x] `ml/trainer.py` (named param groups, Stage A/B, AMP, EMA, resume, history.csv)
+- [x] `ml/evaluate.py`, `ml/metrics.py` (MAE, RMSE, SSIM, normal error, R_detail; per family/style/S)
+- [x] `src/train.py`, `src/evaluate.py`; local smoke run (tiny set, CPU) → `mlruns/` (4 runs)
+- [x] Kaggle notebooks `nb01_generate_dataset`, `nb02_train`, `nb03_evaluate`
 
 ### Phase 4 — App and delivery
-- [ ] `app/app.py` (Gradio), `Dockerfile`, `.dockerignore`, CI workflow
-- [ ] `notebooks/exploration.ipynb`
-- [ ] `README.md` (all required sections, course-technique table, screenshots)
-- [ ] `final_report.md` → docx from the template → `SICIP_NAME_ID.pdf`
+- [x] `app/app.py` (Gradio), `Dockerfile`, `.dockerignore`, CI workflow
+- [x] `notebooks/exploration.ipynb`
+- [x] `README.md` (all required sections, course-technique table)
+- [x] `final_report.md` written (docx/PDF from the template is the user's step)
 
 ## 3. User checklist (only the user can do these)
 

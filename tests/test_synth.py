@@ -125,7 +125,7 @@ def test_lighting_polarity():
 def _tiny_scene(seed, family):
     # cheap stand-in for pipeline tests: 518x518 canvas
     rng = np.random.default_rng(seed)
-    stamps = SH.rosette_stamps(259, 259, 120, 6, 80, 38, "dome", 0.9, 0.1, 1, rng)
+    stamps = SH.rosette_stamps(259, 259, 160, 6, "dome", 0.9, 0.1, 1, rng)
     h, inst = C.compose(518, 518, stamps)
     return {"h": h, "inst": inst, "meta": {"seed": seed, "family": family, "symmetry": "none", "aspect": "1:1", "W": 518, "H": 518, "width_mm_scene": 300.0, "relief_depth_mm_scene": 8.0, "fg_frac": float((h > 0.02).mean()), "h_std": float(h.std())} | {"px_per_mm_native": 300.0 / 518}}
 

@@ -94,7 +94,7 @@ def _make_tiny_ds(tmp_path, n=6):
     for i in range(n):
         split = "train" if i < 3 else ("val" if i < 4 else "test")
         rng = np.random.default_rng(100 + i)
-        stamps = SH.rosette_stamps(518, 518, 160, 6, 100, 45, "dome", 0.9, 0.1, 1, rng)
+        stamps = SH.rosette_stamps(518, 518, 200, 6, "dome", 0.9, 0.1, 1, rng)
         h, inst = C.compose(518, 518, stamps)
         cv2.imwrite(str(root / "geometry" / split / f"{i:06d}_h.png"), h_to_u16(h))
         cv2.imwrite(str(root / "geometry" / split / f"{i:06d}_inst.png"), inst.astype(np.uint16))

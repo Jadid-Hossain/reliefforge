@@ -28,7 +28,7 @@ def shade(h: np.ndarray, kappa: float, rng: np.random.Generator, ambient: float 
     n /= np.maximum(np.linalg.norm(n, axis=-1, keepdims=True), 1e-8)
     az, el = np.deg2rad(rng.uniform(0, 360)), np.deg2rad(rng.uniform(30, 75))
     L = np.array([np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)], np.float32)
-    amb = rng.uniform(0.25, 0.5) if ambient is None else ambient
+    amb = rng.uniform(0.35, 0.55) if ambient is None else ambient
     sh = amb + (1 - amb) * np.clip(n @ L, 0, 1)
     alpha = rng.uniform(1, 4)
     blur = cv2.GaussianBlur(h, (0, 0), max(2.0, 0.01 * max(h.shape)))
@@ -36,22 +36,42 @@ def shade(h: np.ndarray, kappa: float, rng: np.random.Generator, ambient: float 
     return (sh * ao).astype(np.float32)
 
 
+def _lowfreq_noise(H: int, W: int, rng: np.random.Generator, cells: int = 4) -> np.ndarray:
+    """Smooth random field in [0, 1] (blurred small-grid noise)."""
+    g = rng.random((cells, cells)).astype(np.float32)
+    return cv2.resize(cv2.GaussianBlur(g, (0, 0), cells / 6.0), (W, H), interpolation=cv2.INTER_CUBIC)
+
+
 def procedural_wood(h: np.ndarray, rng: np.random.Generator) -> np.ndarray:
-    """Fallback wood albedo when no CC0 texture files are available."""
+    """Fallback wood albedo (no CC0 textures available): plank-scale look.
+
+    Real wood = a few WAVEY grain lines (not fine stripes), broad tonal bands,
+    low-frequency hue variation and the occasional knot. Grain frequency is ~10x
+    lower than a naive sine-stripe so it reads as wood, not brushed metal.
+    """
     H, W = h.shape
-    f = max(1, min(H, W) // 220)
-    small = cv2.resize(h, (max(2, W // f), max(2, H // f)), interpolation=cv2.INTER_AREA)
-    yy, xx = np.mgrid[0 : small.shape[0], 0 : small.shape[1]].astype(np.float32)
     ang = rng.uniform(0, np.pi)
-    u = xx * np.cos(ang) + yy * np.sin(ang)
-    freq = rng.uniform(0.05, 0.25)
-    grain = 0.5 + 0.5 * np.sin(u * freq * 2 * np.pi + 3.0 * np.sin(u * freq * 0.23 * 2 * np.pi + rng.uniform(0, 6)))
-    rings = 0.5 + 0.5 * np.sin(u * freq * 0.11 * 2 * np.pi + rng.uniform(0, 6))
-    grain = cv2.resize(grain, (W, H), interpolation=cv2.INTER_LINEAR)
-    rings = cv2.resize(rings, (W, H), interpolation=cv2.INTER_LINEAR)
-    base = 0.45 + 0.35 * grain + 0.12 * rings
-    tex = np.clip(base + np.random.default_rng(rng.integers(1 << 30)).normal(0, 0.03, (H, W)).astype(np.float32), 0, 1)
-    return np.clip(tex, 0.05, 1.0).astype(np.float32)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    # wobble field bends the grain lines (cathedral-ish waviness)
+    wob = _lowfreq_noise(H, W, rng, cells=3) - 0.5
+    u = xx * np.cos(ang) + yy * np.sin(ang) + wob * (0.10 + 0.25 * rng.random()) * max(H, W)
+    # a handful of wavy grain lines
+    n_lines = float(rng.uniform(4, 9))
+    frac = (u / max(H, W) * n_lines) % 1.0
+    line = np.exp(-((frac - 0.5) ** 2) / (2 * 0.045 ** 2))  # thin dark lines
+    line = np.clip(line * float(rng.uniform(0.55, 0.85)), 0, 1)
+    # broad tonal bands across the grain direction
+    bands = 0.5 + 0.5 * np.sin(u / max(H, W) * 2 * np.pi * float(rng.uniform(1.5, 3.0)) + rng.uniform(0, 6))
+    # plank-scale tone variation + fine speckle
+    tone = _lowfreq_noise(H, W, rng, cells=int(rng.integers(2, 5)))
+    speck = np.random.default_rng(rng.integers(1 << 30)).normal(0, 0.02, (H, W)).astype(np.float32)
+    wood = 0.62 + 0.13 * (bands - 0.5) + 0.16 * (tone - 0.5) - 0.22 * line + speck
+    if rng.random() < 0.5:  # an occasional knot
+        kx, ky = rng.uniform(0.2, 0.8) * W, rng.uniform(0.2, 0.8) * H
+        d = np.hypot(yy - ky, xx - kx)
+        knot = np.exp(-(d / (0.05 * max(H, W))) ** 2) * (0.5 + 0.5 * np.sin(d / (0.008 * max(H, W))))
+        wood = wood - 0.28 * np.clip(knot, 0, 1)
+    return np.clip(wood, 0.08, 1.0).astype(np.float32)
 
 
 def render_view(

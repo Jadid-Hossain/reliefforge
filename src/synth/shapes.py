@@ -195,8 +195,8 @@ def rosette_stamps(cx, cy, R, n_petals, profile, amp, layer, inst, rng, petal_ri
             px = cx + mid * np.cos(ang)
             py = cy + mid * np.sin(ang)
             petal_len = r_out - r_in
-            petal_w = min(0.62 * petal_len, 0.85 * span * mid)  # almost touching the neighbours
-            petal_w = max(petal_len * 0.28, petal_w)
+            petal_w = min(0.72 * petal_len, 0.95 * span * mid)  # petals almost touch: a full flower
+            petal_w = max(petal_len * 0.34, petal_w)
             stamps.append(Stamp(px, py, petal_kernel(petal_len, petal_w, np.degrees(ang), profile), amp * float(rng.uniform(0.85, 1.0)), layer + 0.02 * ring, inst))
     return stamps
 

@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 
-def shade_height(h01: np.ndarray, kappa: float = 10.0, light_az_deg: float = 215.0, light_el_deg: float = 50.0, albedo: float = 0.72) -> np.ndarray:
+def shade_height(h01: np.ndarray, kappa: float = 14.0, light_az_deg: float = 215.0, light_el_deg: float = 50.0, albedo: float = 0.75) -> np.ndarray:
     """Clay-style shaded render of a height map (uint8 RGB)."""
     h = np.asarray(h01, np.float32)
     gy, gx = np.gradient(h * kappa)

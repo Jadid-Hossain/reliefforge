@@ -54,7 +54,7 @@ def _family_stamps(family: str, W: int, H: int, rng: np.random.Generator):
             inst += 1
     elif family == "scroll":
         for _ in range(int(rng.integers(1, 3))):
-            stamps += sh.scroll_stamps(W / 2, H / 2, size, size * rng.uniform(0.28, 0.45), size * rng.uniform(0.018, 0.035), float(rng.uniform(0.8, 1.6)), "dome", rng.uniform(0.5, 0.95), rng.uniform(0, 0.15), inst, rng)
+            stamps += sh.scroll_stamps(W / 2, H / 2, size, size * rng.uniform(0.24, 0.34), size * rng.uniform(0.018, 0.035), float(rng.uniform(0.8, 1.6)), "dome", rng.uniform(0.5, 0.95), rng.uniform(0, 0.15), inst, rng)
             inst += 1
         if rng.random() < 0.5:  # a leaf accent at the scroll centre
             stamps += sh.petal_stamps(W / 2 + size * 0.05, H / 2, size * rng.uniform(0.05, 0.09), rng.uniform(0, 360), "pillow", 0.8, 0.1, inst, rng)

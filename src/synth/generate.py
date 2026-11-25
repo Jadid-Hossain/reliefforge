@@ -75,6 +75,10 @@ def generate_dataset(
     rows = []
     for k, (i, split, seed, fam) in enumerate(plan):
         scene = scenes[k] if scenes is not None else make_scene(seed, fam)
+        retry = 0
+        while not 0.03 <= scene["meta"]["fg_frac"] <= 0.95:
+            retry += 1
+            scene = make_scene(seed + n_scenes * retry, fam)
         meta = scene["meta"]
         meta.update({"id": i, "split": split})
         gid = f"{i:06d}"

@@ -143,6 +143,30 @@ def test_generate_dataset_and_qc(tmp_path):
     assert sheet.exists() and sheet.stat().st_size > 10_000
 
 
+def test_generate_dataset_retries_scene_with_invalid_fg_frac(tmp_path):
+    seeds = []
+
+    def scene_fn(seed, family):
+        seeds.append(seed)
+        scene = _tiny_scene(seed, family)
+        if len(seeds) == 1:
+            scene["meta"]["fg_frac"] = 0.02
+        return scene
+
+    root = generate_dataset(
+        tmp_path / "ds",
+        n_scenes=1,
+        scene_fn=scene_fn,
+        make_previews=False,
+        log_every=0,
+    )
+
+    assert seeds == [0, 1]
+    assert qc_assertions(root)["n_scenes"] == 1
+    row = json.loads((root / "scenes.jsonl").read_text())
+    assert row["seed"] == 1
+
+
 def test_train_val_test_never_share_a_scene(tmp_path):
     root = generate_dataset(tmp_path / "ds", n_scenes=8, val_frac=0.25, test_frac=0.25, scene_fn=_tiny_scene, log_every=0)
     rows = [json.loads(l) for l in open(root / "scenes.jsonl")]

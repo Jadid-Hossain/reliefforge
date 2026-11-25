@@ -1,0 +1,9 @@
+artifact_location: file:///kaggle/working/mlruns/650248900982510272
+creation_time: 1795598831008
+effective_trace_archival_retention: null
+experiment_id: '650248900982510272'
+last_update_time: 1795598831008
+lifecycle_stage: active
+name: ReliefForge-Eval
+trace_location: null
+workspace: default

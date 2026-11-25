@@ -1,8 +1,8 @@
-artifact_location: file:///G:/Code%20Playground/3D%20Master/mlruns/0
-creation_time: 1795455822816
+artifact_location: file:///kaggle/working/mlruns/0
+creation_time: 1795594382038
 effective_trace_archival_retention: null
 experiment_id: '0'
-last_update_time: 1795455822816
+last_update_time: 1795594382038
 lifecycle_stage: active
 name: Default
 trace_location: null

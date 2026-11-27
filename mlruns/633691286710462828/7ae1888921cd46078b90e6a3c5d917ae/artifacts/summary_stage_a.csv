@@ -1,0 +1,2 @@
+model,S,n,MAE_norm,RMSE_norm,SSIM,normal_err_deg,R_detail,pearson
+stage_a,518,168,0.1829,0.2334,0.7583,1.2,0.805,0.607

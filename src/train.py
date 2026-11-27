@@ -143,10 +143,7 @@ def main() -> int:
     for f in export_dir.iterdir():
         tracking.log_artifact_safe(run, f, artifact_path="model")
     tracking.log_dict_json(run, {"val": val, "train_stats": stats, "export": str(export_dir)}, "run_info.json")
-    try:
-        run.set_terminated()
-    except Exception:
-        pass
+    tracking.end_run()
     print(f"export saved to {export_dir}")
     return 0
 

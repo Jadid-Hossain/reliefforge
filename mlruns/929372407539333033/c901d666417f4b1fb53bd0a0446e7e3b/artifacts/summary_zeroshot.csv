@@ -1,0 +1,4 @@
+model,S,n,MAE_norm,RMSE_norm,SSIM,normal_err_deg,R_detail,pearson
+zeroshot,518,168,0.2417,0.2958,0.5318,1.27,0.594,0.4843
+zeroshot,756,168,0.2375,0.2892,0.5489,0.94,0.502,0.4886
+zeroshot,1036,168,0.2291,0.2796,0.5608,0.76,0.459,0.5073

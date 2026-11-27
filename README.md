@@ -127,11 +127,30 @@ export MLFLOW_ALLOW_FILE_STORE=true    # needed by mlflow >= 3.18 for the file s
 mlflow ui --backend-store-uri file:///$(pwd)/mlruns   # http://127.0.0.1:5000
 ```
 
-Experiments: `ReliefForge-Finetune` (`a_smoke…`, `b_smoke…`, `stage_a…`, `stage_b…`) and
-`ReliefForge-Eval` (`zeroshot…`, `stage_b…`). Each run logs the full config, per-100-step
+Experiments: `ReliefForge-Finetune` (`stage_a_decoder_only`, `stage_b_full_finetune`, smoke runs) and
+`ReliefForge-Eval` (`zeroshot_baseline`, `stage_a`, `stage_b`). Each run logs the full config, per-100-step
 train metrics (`train_loss, L_h, L_g, L_n, lr_*, images_per_s`), validation metrics
 (`val_MAE_norm, val_normal_err_deg, val_pearson`), `history.csv`, the eval tables and the
-model export. Screenshot: `screenshots/mlflow_runs.png`.
+model export. (For transparency: on Kaggle, mlflow 3.18's `start_run()` returned an
+`ActiveRun` without `log_*` methods, so the original runs stored only tags; the real
+numbers were re-logged locally with the original Kaggle run ids kept in the run tags —
+see `scripts/recover_mlflow_evidence.py`.)
+
+**Screenshots** (in `screenshots/`):
+
+| File | What it shows |
+|---|---|
+| `screenshots/mlflow_runs.png` | the MLflow experiments page (ReliefForge-Finetune + ReliefForge-Eval runs) |
+| `screenshots/training_result.png` | training/evaluation result view (metrics + comparison chart) |
+
+## 7.1 Demo screenshots
+
+| File | What it shows |
+|---|---|
+| `screenshots/demo_output.png` | the prediction UI: uploaded design → shaded height, 3D preview, downloadable ZIP |
+| `screenshots/docker_app_running.png` | the Docker-served prediction app working end-to-end (browser + `docker ps`) |
+
+## 7.2 Evaluation summary (real Relief-Depth test split, 168 pairs)
 
 ## 8. Course techniques used (and where)
 

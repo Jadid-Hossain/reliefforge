@@ -44,3 +44,8 @@ resources/
 # ---- secrets & local config ----
 .env
 kaggle.json
+
+# ---- report builder scratch (the deliverable is report/SICIP_NAME_ID.docx/pdf) ----
+work_report/
+mlruns_probe/
+.vscode/

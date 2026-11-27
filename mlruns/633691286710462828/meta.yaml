@@ -1,0 +1,9 @@
+artifact_location: file:///G:/Code%20Playground/3D%20Master/mlruns/633691286710462828
+creation_time: 1795662111529
+effective_trace_archival_retention: null
+experiment_id: '633691286710462828'
+last_update_time: 1795662111529
+lifecycle_stage: active
+name: ReliefForge-Finetune
+trace_location: null
+workspace: default

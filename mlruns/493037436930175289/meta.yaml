@@ -1,9 +1,0 @@
-artifact_location: file:///kaggle/working/mlruns/493037436930175289
-creation_time: 1795594382050
-effective_trace_archival_retention: null
-experiment_id: '493037436930175289'
-last_update_time: 1795594382050
-lifecycle_stage: active
-name: ReliefForge-Finetune
-trace_location: null
-workspace: default

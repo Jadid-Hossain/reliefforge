@@ -1,0 +1,9 @@
+artifact_location: file:///G:/Code%20Playground/3D%20Master/mlruns/929372407539333033
+creation_time: 1795662113661
+effective_trace_archival_retention: null
+experiment_id: '929372407539333033'
+last_update_time: 1795662113661
+lifecycle_stage: active
+name: ReliefForge-Eval
+trace_location: null
+workspace: default

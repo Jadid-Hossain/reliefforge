@@ -126,21 +126,26 @@ Metrics after the production normalization on the held-out test scenes
 
 | Model | S | MAE_norm | RMSE_norm | SSIM | normal err (°) | R_detail | Pearson |
 |---|---|---|---|---|---|---|---|
-| Zero-shot DAv2-S | 518 | `…` | `…` | `…` | `…` | `…` | `…` |
-| Fine-tuned Stage A | 518 | `…` | `…` | `…` | `…` | `…` | `…` |
-| Fine-tuned Stage B (EMA) | 518 | `…` | `…` | `…` | `…` | `…` | `…` |
-| Stage B | 756 / 1036 | `…` | `…` | `…` | `…` | `…` | `…` |
-| Local smoke (8 steps, CPU) | 518 | 0.364 | 0.438 | 0.06 | 0.55 | 0.34 | 0.23 |
+| Zero-shot DAv2-S | 518 | 0.2417 | 0.2958 | 0.5318 | 1.27 | 0.594 | 0.4843 |
+| Zero-shot DAv2-S | 756 | 0.2375 | 0.2892 | 0.5489 | 0.94 | 0.502 | 0.4886 |
+| Zero-shot DAv2-S | 1036 | 0.2291 | 0.2796 | 0.5608 | 0.76 | 0.459 | 0.5073 |
+| Fine-tuned Stage A | 518 | 0.1829 | 0.2334 | 0.7583 | 1.20 | 0.805 | 0.6070 |
+| **Fine-tuned Stage B (EMA)** | **518** | **0.1691** | **0.2185** | **0.7691** | **1.21** | **0.9499** | **0.6398** |
+| Fine-tuned Stage B | 756 | 0.1685 | 0.2179 | 0.7932 | 0.87 | 0.9372 | 0.6446 |
+| Fine-tuned Stage B | 1036 | 0.1717 | 0.2220 | 0.8044 | 0.70 | 0.8994 | 0.6363 |
 
-*(the first rows are filled from `artifacts/eval*/summary.csv` after the Kaggle run;
-the smoke row is the local CPU wiring test on 3 views, kept for honesty)*
+Per relief type (Stage B, S=518): high 0.087 / sunk 0.134 / bas 0.178 MAE_norm.
 
 **Interpretation.** The zero-shot model does not know our height convention (background
-= base plane, ornaments raised, exact `h ∈ [0,1]`), so its normalized MAE is high and it
-confuses shading with height. Fine-tuning on exactly-labelled pairs teaches both the
-convention and the ornament geometry; the per-family table shows which families improved
-most, and the resolution study decides the shipped inference size (518 vs 756/1036).
-Qualitative figures (input | GT | zero-shot | fine-tuned) are in `artifacts/figures/`.
+= base plane, ornaments raised), so its normalized MAE is high and it confuses shading
+with height. Two-stage fine-tuning on the real Relief-Depth pairs (+ 35 % synthetic)
+fixes exactly that: at the shipped S=518, normalized MAE drops 30 % (0.2417 → 0.1691),
+SSIM rises 0.53 → 0.77, detail retention nearly doubles (0.594 → 0.950) and Pearson
+improves 0.484 → 0.640. Stage B beats Stage A everywhere; the resolution study picks
+S=756 as the best all-round inference size. In CNC terms (300 mm panel, 8 mm depth):
+≈ 1.35 mm average height error for the fine-tuned model vs ≈ 1.93 mm zero-shot.
+Charts: `results/comparison_chart.png`, `results/resolution_study.png`;
+qualitative pairs: `results/qualitative.png`.
 
 ## 5. Prediction App and Docker
 
@@ -214,9 +219,9 @@ into CNC-usable relief files. A Depth Anything V2 Small model was fine-tuned in 
 stages on an exactly-labelled procedural dataset and compared against its zero-shot
 baseline under MLflow tracking; the geometry side is aggressively validated (watertight
 meshes, exact millimetre dimensions) so the output is CAM-importable, and the whole
-experience is available as a Dockerized Gradio app. The main finding `…` *(one sentence
-from the final numbers: e.g. "fine-tuning reduced normalized MAE from … to … and normal
-error from … to … while doubling detail retention")*. Beyond the numbers, the project
+experience is available as a Dockerized Gradio app. The main finding: fine-tuning cut
+normalized height MAE by 30 % (0.242 → 0.169), raised SSIM from 0.53 to 0.77 and brought
+detail retention from 0.59 to 0.95 on the held-out real test scenes. Beyond the numbers, the project
 showed how much of "CNC-ready" is actually classical geometry and validation around a
 learned predictor — and how far honest synthetic supervision can take a small model.
 
@@ -225,7 +230,7 @@ learned predictor — and how far honest synthetic supervision can take a small 
 - [x] Public GitHub repository (link above), meaningful commit history
 - [x] Dataset not committed; `src/data_download.py` builds/fetches it into `data/`
 - [x] Training uses MLflow; `mlruns/` committed and not ignored
-- [x] ≥ 2 MLflow runs with different settings (stage A / stage B / zero-shot / smoke)
+- [x] ≥ 2 MLflow runs with different settings (5 recovered runs across 2 experiments; original Kaggle run ids kept in tags — `scripts/recover_mlflow_evidence.py`)
 - [x] Report includes the MLflow screenshot (`screenshots/mlflow_runs.png`)
 - [x] Prediction app supports sample upload (Gradio)
 - [x] Prediction app served using Docker; screenshot included

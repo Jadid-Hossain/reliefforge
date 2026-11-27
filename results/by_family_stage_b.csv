@@ -1,0 +1,4 @@
+model,family,MAE_norm,normal_err_deg
+stage_b,real-bas,0.1778,0.9619
+stage_b,real-high,0.0872,0.6901
+stage_b,real-sunk,0.1337,0.5482

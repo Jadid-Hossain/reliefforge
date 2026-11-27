@@ -76,10 +76,7 @@ def main() -> int:
     print("|---|---|---|---|---|---|---|---|---|")
     for t in rep["table"]:
         print(f"| {t['model']} | {t['S']} | {t['n']} | {t['MAE_norm']:.4f} | {t['RMSE_norm']:.4f} | {t['SSIM']:.4f} | {t['normal_err_deg']:.2f} | {t['R_detail']:.3f} | {t['pearson']:.4f} |")
-    try:
-        run.set_terminated()
-    except Exception:
-        pass
+    tracking.end_run()
     return 0
 
 

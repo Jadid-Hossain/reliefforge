@@ -1,0 +1,14 @@
+artifact_uri: file:///G:/Code%20Playground/3D%20Master/mlruns/633691286710462828/7ae1888921cd46078b90e6a3c5d917ae/artifacts
+end_time: 1795662113062
+entry_point_name: ''
+experiment_id: '633691286710462828'
+lifecycle_stage: active
+run_id: 7ae1888921cd46078b90e6a3c5d917ae
+run_name: stage_a_decoder_only
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1795662112433
+status: 3
+tags: []
+user_id: jadid

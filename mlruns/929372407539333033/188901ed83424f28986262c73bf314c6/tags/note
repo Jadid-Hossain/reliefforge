@@ -1,0 +1,1 @@
+metrics re-logged locally 2026-11-26: mlflow 3.18 ActiveRun had no log_* methods on Kaggle; numbers are the real results of that session

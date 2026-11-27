@@ -136,7 +136,7 @@ def generate_relief(
     else:
         f = min(1.0, 1036 / max(H_src, W_src))
         work_rgb = rgb if f == 1.0 else resize_arr(rgb, int(round(W_src * f)), int(round(H_src * f)))
-    Wh, Hh = work_rgb.shape[:2]
+    Hh, Wh = work_rgb.shape[:2]
     work_mask = None if mask is None else resize_mask(mask, Wh, Hh)
 
     # 3) height
@@ -152,8 +152,30 @@ def generate_relief(
     elif mode == "B":
         if model is None:
             raise ValueError("mode B needs a ReliefModel instance")
-        h_raw = model.predict(work_rgb, S=S, tta=params.tta)
-        mode_info = {"model": getattr(model, "model_id", "?"), "S": S, "tta": params.tta}
+        from .tile_fusion import boost_relief
+        dev = str(getattr(model, "device", "cpu"))
+        long_side = 1400 if dev == "cpu" else 2048
+        tf_out = boost_relief(
+            rgb,
+            predict_fn=lambda im: model.predict(im, S=518, tta=False),
+            global_predict_fn=lambda im: model.predict(im, S=S, tta=params.tta),
+            long_side=long_side,
+            tile=518,
+            overlap=0.45,
+            flip_tta=(dev != "cpu"),
+            mask=mask,
+        )
+        h_raw = tf_out["height"]
+        Hh, Wh = h_raw.shape[:2]
+        work_mask = None if mask is None else resize_mask(mask, Wh, Hh)
+        mode_info = {
+            "model": getattr(model, "model_id", "?"),
+            "S": S,
+            "tta": params.tta,
+            "tile_fusion": True,
+            "n_tiles": tf_out["n_tiles"],
+            "fine_shape": [Hh, Wh],
+        }
     else:
         raise ValueError(f"unknown mode {mode}")
     info["mode_used"] = mode

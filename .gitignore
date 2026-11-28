@@ -50,3 +50,5 @@ kaggle.json
 work_report/
 mlruns_probe/
 .vscode/
+
+*.v1_backup

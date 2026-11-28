@@ -154,21 +154,27 @@ qualitative pairs: `results/qualitative.png`.
 ## 5. Prediction App and Docker
 
 ### 5.1 Prediction pipeline
-The user uploads a design image and sets physical parameters (width, relief depth, base
-thickness, tool diameter, smoothing, invert, mode, model choice). The pipeline masks the
-background when safe, letterboxes to a multiple of 14 (size chosen from the panel's long
-side in mm and the tool, capped by the source resolution), runs Mode A (classic
-design→relief), Mode B (fine-tuned model with zero-shot fallback) or Mode C
-(gray→height), post-processes (percentile normalization inside a dilated reference
-region, invert relative to the base plane, bilateral + Gaussian smoothing, mask
-feathering), builds a watertight solid (top grid + walls + centre-fan bottom, triangle
-budget), validates it (watertight, winding, exact mm dimensions, no NaN/degenerate
-faces) and exports STL/OBJ/3MF + 16-bit TIFF + JSON sidecar + ZIP.
+The user uploads a design image (JPG/PNG/WEBP) and sets physical parameters: panel
+width, relief depth, base thickness, tool diameter, smoothing, invert, mode
+(A design-to-relief, B AI model, C gray-to-height; "auto" selects A for flat/BW designs)
+and the model selector (fine-tuned vs zero-shot). Phone photos can optionally be
+normalized first (studio-relight cleanup) before prediction. For Mode B, **tile-fusion
+inference** refines the height map: 518-px tiles with 45 % overlap are predicted,
+aligned to a global pass and feather-fused - an effective resolution of up to 1400 px on
+CPU (2048 px on GPU) instead of a single 518-px pass. The pipeline masks the background
+when it is safe, post-processes (percentile normalization, invert relative to the base
+plane, smoothing, mask feathering) and builds a watertight solid that it validates
+(watertight, exact mm bounding box, no degenerate faces). The app shows a shaded height
+preview, an interactive 3D preview, the validation report with manufacturing warnings,
+and a downloadable ZIP with the STL/OBJ/3MF, the 16-bit TIFF and the JSON sidecar.
 
 ### 5.2 Prediction UI
-Gradio (`app/app.py`): image upload, all sliders, 3D OBJ preview (Gradio's Model3D has
-no .3mf — the 3MF travels in the ZIP), warnings and the validation report.
-Screenshot: `screenshots/prediction_ui.png`.
+The UI (**3dRelief**) is built with Gradio (`app/app.py`): image upload, sliders and
+radio buttons for every parameter, a preview strip (input | shaded relief | height map |
+mask), and a **live 3D preview with material presets** (clay, gold, bronze, wood,
+silver) and lighting presets, exported as a styled GLB model. A built-in tutorial guides
+new users and a **Stop & Reset** button clears the workspace. It runs both locally
+(`python app/app.py`) and inside Docker.
 
 ### 5.3 Docker serving
 The repository contains the `Dockerfile` (CPU torch, weights warmed at build time,

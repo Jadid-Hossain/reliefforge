@@ -6,7 +6,7 @@ Final project for the **Certification in Machine Learning and Deep Learning (SIC
 
 **Problem.** CNC carving of furniture panels, doors and ornaments needs a relief height file (a height field `Z = f(X, Y)` that a 3-axis router follows). Modelling it by hand in CAD is slow.
 
-**System.** The user uploads a 2D design image (flat ornament, B/W line art, or a photo of a carved panel) plus physical parameters (width, relief depth, base thickness, tool diameter). A fine-tuned **Depth Anything V2 Small** (DINOv2 ViT-S, 24.8M params, Apache-2.0) predicts the relief height.
+**System.** The user uploads a 2D design image (flat ornament, B/W line art, or a photo of a carved panel) plus physical parameters (width, relief depth, base thickness, tool diameter). A fine-tuned **Depth Anything V2 Small** (DINOv2 ViT-S, 24.8M params, Apache-2.0) predicts the relief height. Large inputs are processed with **tile-fusion inference** (518-px tiles, 45 % overlap, aligned and feather-fused with a global pass — effective resolution up to 1400 px on CPU / 2048 px on GPU), and phone photos can optionally be normalized first (studio-relight cleanup) before prediction.
 
 **Expected output.** A 16-bit height map (`relief_heightmap_16bit.tiff`), a **watertight** solid mesh in millimetres (`relief.stl/.obj/.3mf`), `relief_meta.json` (physical scale + validation report), and manufacturing warnings — downloadable from the web app. Height from one image is *relative and plausible*; "AI draft + human review" is the intended workflow.
 
@@ -38,7 +38,7 @@ cd reliefforge
 python -m venv .venv && .venv/Scripts/activate        # source .venv/bin/activate on Linux
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
-pytest tests/ -q        # 168 tests (downloads the zero-shot weights on first use)
+pytest tests/ -q        # 169 tests (downloads the zero-shot weights on first use)
 ```
 
 ## 4. Training (MLflow-tracked, two stages)
@@ -120,7 +120,7 @@ docker run -p 7860:7860 reliefforge-app:1.0                        # zero-shot w
 docker run -p 7860:7860 -v /path/to/export:/models/finetuned reliefforge-app:1.0   # + fine-tuned
 ```
 
-Open **http://localhost:7860**, upload a design image (e.g. an ornament photo or flat ornament PNG), set width/depth/base/tool, press **Generate relief** — the app shows the shaded height, a 3D preview and a downloadable ZIP (STL/OBJ/3MF + 16-bit TIFF + sidecar). Local run without Docker: `python app/app.py`. CLI: `python src/predict.py design.png out/ --mode B --width 300 --depth 8 --tool 1.0`.
+Open **http://localhost:7860** — the **3dRelief** UI. Upload a design image (ornament photo or flat design PNG), optionally enable photo cleanup, set width/depth/base/tool, press **Generate relief**. The app shows the shaded height, a **live 3D preview with material presets** (clay, gold, bronze, wood, silver) and lighting presets (exported as a styled GLB), a built-in tutorial, and a downloadable ZIP (STL/OBJ/3MF + 16-bit TIFF + sidecar); a **Stop & Reset** button clears the workspace. Local run without Docker: `python app/app.py`. CLI: `python src/predict.py design.png out/ --mode B --width 300 --depth 8 --tool 1.0`.
 
 **Demo screenshots**
 
@@ -137,9 +137,12 @@ README.md  final_report.md  requirements.txt  .gitignore  .gitattributes  Docker
 configs/          config.yaml, stage_a.yaml, stage_b.yaml
 src/              data_download.py, generate_dataset.py, train.py, evaluate.py, predict.py
                   reliefkit/ (inference library)  synth/ (generator)  ml/ (training/eval)
-app/app.py        Gradio prediction UI (served with Docker)
+app/app.py        3dRelief — Gradio prediction UI (materials + lighting presets, GLB 3D
+                  preview, tutorial, workspace reset; served with Docker)
 notebooks/        exploration.ipynb, kaggle/{nb01_generate_dataset, nb02_train, nb03_evaluate}
-tests/            168 pytest tests
+tests/            169 pytest tests
+src/reliefkit/    also tile_fusion.py (tiled high-res inference) and studio_relight.py
+                  (optional photo cleanup before prediction)
 mlruns/           MLflow evidence (committed, not ignored)
 screenshots/      mlflow_runs.png, training_result.png, demo_output.png, docker_app_running.png
 results/          evaluation CSVs, comparison/resolution charts, qualitative figure

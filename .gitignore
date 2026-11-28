@@ -1,4 +1,4 @@
-# ---- data & generated artifacts (course rule: never commit datasets) ----
+﻿# ---- data & generated artifacts (course rule: never commit datasets) ----
 data/*
 !data/.gitkeep
 artifacts/*
@@ -51,4 +51,3 @@ work_report/
 mlruns_probe/
 .vscode/
 
-*.v1_backup

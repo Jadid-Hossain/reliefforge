@@ -21,3 +21,7 @@ resources
 *.zip
 *.pt
 *.safetensors
+.env
+.tmp_outputs
+work_report
+results

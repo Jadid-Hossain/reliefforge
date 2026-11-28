@@ -77,17 +77,21 @@ this script (`data/` is git-ignored).
 ## 3. Methodology
 
 ### 3.1 Course techniques used
+Mapped to the course outline (Certification in Machine Learning and Deep Learning, SICIP Batch 01):
 
-| Technique | Where |
+| Course topic | Where used |
 |---|---|
-| Transfer learning (two-stage fine-tuning) | `src/ml/trainer.py` |
-| Transformer backbone (DINOv2 ViT-S + DPT) | `src/reliefkit/model.py`, `src/ml/trainer.py` |
-| Custom losses (SSI regression, multi-scale gradient, normal loss) | `src/ml/losses.py` |
-| Synthetic data generation + domain randomization | `src/synth/` |
-| AMP, EMA, warmup+cosine, resume, grad clipping | `src/ml/trainer.py`, `src/ml/ema.py` |
-| MLflow experiment tracking | `src/ml/tracking.py` |
-| Evaluation & error analysis (per family/style/resolution) | `src/ml/metrics.py`, `src/ml/evaluate.py` |
-| Dockerized prediction app (Gradio) | `Dockerfile`, `app/app.py` |
+| Neural networks & deep learning (backpropagation, activation functions, gradient-descent optimizers) | End-to-end fine-tuning by backpropagation, AdamW + warmup/cosine schedule, GELU/ReLU activations (`src/ml/trainer.py`) |
+| CNNs (convolutions, pooling, ResNet-style residual blocks) | DPT neck/head fully convolutional with residual layers; ViT patch embedding is a strided convolution (`src/reliefkit/model.py`) |
+| Transformers (self-attention, pretrained encoders) | DINOv2 ViT-S Transformer encoder as the backbone, fine-tuned for relief height (`src/ml/trainer.py`) |
+| Transfer learning & fine-tuning; domain adaptation | Two-stage fine-tuning of pretrained Depth Anything V2; hybrid real + synthetic data (`src/ml/trainer.py`, `src/ml/dataset.py`, `src/ml/realdata.py`) |
+| Regularization techniques | Weight decay 1e-4, grad-clip 1.0, weight EMA 0.999, data augmentation (`src/ml/trainer.py`, `src/ml/ema.py`) |
+| Hyperparameter tuning | Stage A vs B LR settings as separate MLflow runs; resolution study S = 518/756/1036 (`configs/`, `src/evaluate.py`) |
+| Scalability & deployment: MLflow, Docker, model serving | `src/ml/tracking.py`; `Dockerfile`, `app/app.py` |
+| Model evaluation & error analysis | MAE/RMSE, SSIM, normal angular error, R_detail, Pearson + per relief-type/lighting/resolution breakdowns (`src/ml/metrics.py`, `src/ml/evaluate.py`) |
+| Ethical considerations (data provenance, responsible use) | Licence audit of Relief-Depth (CC-BY-NC), commercial-use restriction documented (Section 7.1) |
+
+Not applicable to this task (not forced in): RNN/LSTM (no sequential data), GAN/VAE and reinforcement learning (procedural generation + regression used instead), SHAP/LIME (dense prediction; per-relief-type error analysis used instead).
 
 ### 3.2 Model architecture
 `depth-anything/Depth-Anything-V2-Small-hf` (Apache-2.0): DINOv2 ViT-S `backbone`

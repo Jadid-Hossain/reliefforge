@@ -51,3 +51,6 @@ work_report/
 mlruns_probe/
 .vscode/
 
+
+# ---- internal planning docs (not part of the submission) ----
+docs/
